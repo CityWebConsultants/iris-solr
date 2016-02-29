@@ -92,7 +92,7 @@ iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (th
 
   iris.saveConfig(thisHook.const.params, 'irisSolr', 'adminSolr');
 
-  iris.modules.irisSolr.globals.executeQuery("deleteByQuery",content, thisHook.const.req, function (data) {
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", content, function (data) {
 
     if (data.responseHeader && data.responseHeader.status == 0) {
 
@@ -113,33 +113,37 @@ iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (th
 /**
  * Given a generated SQL query, create a Solr connection and execute the query.
  */
-iris.modules.irisSolr.globals.executeQuery = function (action, content, req, callback) {
-
+iris.modules.irisSolr.globals.executeQuery = function (action, content, callback) {
+  console.log("chito", action);
   if (action !== false) {
 
     iris.readConfig('irisSolr', 'adminSolr').then(function (config) {
-      
+
       try {
 
         var connection = iris.modules.irisSolr.globals.getSolrConnection(config);
         connection[action](content, function (err, obj) {
           if (err) {
-            console.log("error", "Error connecting to Solr server. Please check your connection details" + JSON.stringify(err));
+            console.log("error", "2Error connecting to Solr server. Please check your connection details" + JSON.stringify(err));
             callback(false);
-             return false;
+            return false;
           } else {
-            callback(obj);
-             return false;
+            connection.commit({ waitSearcher: false }, function (err, resp) {
+              console.log(resp);
+              callback(obj);
+              return false;
+            });
+            
+            
+            
           }
         });
 
-
-
       } catch (e) {
 
-        console.log("error", "Error connecting to Solr server. Please check your connection details" + JSON.stringify(e));
+        console.log("error", "3Error connecting to Solr server. Please check your connection details", e);
 
-        iris.message(req.authPass.userid, "Error connecting to Solr server. Please check your connection details.", "error");
+        iris.message("Error connecting to Solr server. Please check your connection details.", "error");
 
         callback(false);
         return false;
@@ -150,17 +154,17 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, req, cal
 
       console.log("error", "Error connecting to Solr server. Please check your connection details" + fail);
 
-      iris.message(req.authPass.userid, "Error connecting to Solr server. Please check your connection details", "error");
+      iris.message("Error connecting to Solr server. Please check your connection details", "error");
 
       callback(false);
-       return false;
+      return false;
 
 
     });
   } else {
 
     callback(false);
-     return false;
+    return false;
   }
 }
 
@@ -171,6 +175,7 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, req, cal
 iris.modules.irisSolr.globals.getSolrConnection = function (config) {
 
   var solr = require('solr-client');
+
   var client = solr.createClient({
     host: config.host,
     port: config.port,
@@ -182,8 +187,35 @@ iris.modules.irisSolr.globals.getSolrConnection = function (config) {
 };
 
 iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, data) {
-   iris.modules.irisSolr.globals.executeQuery("add",data, thisHook.const.req, function (data) {
+  console.log(data);
+  data.id = data._id
+  iris.modules.irisSolr.globals.executeQuery("add", data, function (resp) {
+    console.log(data);
     thisHook.finish(true, data);
 
   });
+
+});
+
+iris.modules.irisSolr.registerHook("hook_entity_updated", 1, function (thisHook, data) {
+
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'id:' + data.eid, function (resp) {
+    data.id = data._id
+    iris.modules.irisSolr.globals.executeQuery("add", data, function (resp) {
+
+      thisHook.finish(true, data);
+
+    });
+
+  });
+});
+
+iris.modules.irisSolr.registerHook("hook_entity_delete", 1, function (thisHook, data) {
+  console.log(data);
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'id:' + data.eid, function (resp) {
+
+    thisHook.finish(true, data);
+
+  });
+
 });
