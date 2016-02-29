@@ -56,25 +56,25 @@ iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, co
   console.log(config);
   data.schema.host = {
     "type": "text",
-    "title": "Solr server host",
+    "title": "Host",
     "required": true,
     "default": config.host ? config.host : ""
   };
   data.schema.port = {
     "type": "text",
-    "title": "Solr server port",
+    "title": "Port",
     "required": true,
     "default": config.port ? config.port : ""
   };
   data.schema.core = {
     "type": "text",
-    "title": "Solr server core",
+    "title": "Core",
     "required": true,
     "default": config.core ? config.core : ""
   };
   data.schema.path = {
     "type": "text",
-    "title": "Solr server path",
+    "title": "Path",
     "required": true,
     "default": config.path ? config.path : ""
   };
@@ -88,13 +88,13 @@ iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, co
  */
 iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (thisHook, data) {
 
-  var queryString = 'SHOW VARIABLES';
+  var content = 'title_t:Hello';
 
   iris.saveConfig(thisHook.const.params, 'irisSolr', 'adminSolr');
 
-  iris.modules.irisSolr.globals.executeQuery(queryString, thisHook.const.req, function (data) {
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery",content, thisHook.const.req, function (data) {
 
-    if (data.fields && data.fields.length > 0) {
+    if (data.responseHeader && data.responseHeader.status == 0) {
 
       iris.message(thisHook.authPass.userid, "Connection successful", "info");
 
@@ -113,24 +113,23 @@ iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (th
 /**
  * Given a generated SQL query, create a Solr connection and execute the query.
  */
-iris.modules.irisSolr.globals.executeQuery = function (queryString, req, callback) {
+iris.modules.irisSolr.globals.executeQuery = function (action, content, req, callback) {
 
-  if (queryString !== false) {
+  if (action !== false) {
 
     iris.readConfig('irisSolr', 'adminSolr').then(function (config) {
-
-      console.log("config", config);
-
+      
       try {
 
         var connection = iris.modules.irisSolr.globals.getSolrConnection(config);
-        var query = 'title_t:Hello';
-        connection.deleteByQuery(query, function (err, obj) {
+        connection[action](content, function (err, obj) {
           if (err) {
             console.log("error", "Error connecting to Solr server. Please check your connection details" + JSON.stringify(err));
-            return callback(false);
+            callback(false);
+             return false;
           } else {
-            return callback(obj);
+            callback(obj);
+             return false;
           }
         });
 
@@ -142,7 +141,8 @@ iris.modules.irisSolr.globals.executeQuery = function (queryString, req, callbac
 
         iris.message(req.authPass.userid, "Error connecting to Solr server. Please check your connection details.", "error");
 
-        return callback(false);
+        callback(false);
+        return false;
 
 
       }
@@ -152,13 +152,15 @@ iris.modules.irisSolr.globals.executeQuery = function (queryString, req, callbac
 
       iris.message(req.authPass.userid, "Error connecting to Solr server. Please check your connection details", "error");
 
-      return callback(false);
+      callback(false);
+       return false;
 
 
     });
   } else {
 
-    return callback(false);
+    callback(false);
+     return false;
   }
 }
 
@@ -168,7 +170,6 @@ iris.modules.irisSolr.globals.executeQuery = function (queryString, req, callbac
  */
 iris.modules.irisSolr.globals.getSolrConnection = function (config) {
 
-  console.log(config);
   var solr = require('solr-client');
   var client = solr.createClient({
     host: config.host,
@@ -180,6 +181,9 @@ iris.modules.irisSolr.globals.getSolrConnection = function (config) {
   return client;
 };
 
-iris.hook("hook_entity_view", "root").then(function (data) {
-  console.log("i am callled from solr", data);
+iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, data) {
+   iris.modules.irisSolr.globals.executeQuery("add",data, thisHook.const.req, function (data) {
+    thisHook.finish(true, data);
+
+  });
 });
