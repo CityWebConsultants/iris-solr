@@ -15,7 +15,7 @@ var search = {
 };
 
 iris.route.get('/search', search.query, function (req, res) {
-
+  iris.modules.irisSolr.globals.generateSearch(req, res);
 });
 
 /**
@@ -112,8 +112,16 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, callback
 
             connection.commit({ waitSearcher: false }, function (err, resp) {
 
-              callback(obj);
-              return false;
+              if (err) {
+
+                iris.log("error", "Error on commiting query. Please check your query permission" + JSON.stringify(err));
+                callback(false);
+                return false;
+
+              } else {
+                callback(obj);
+                return false;
+              }
 
             });
 
@@ -143,12 +151,42 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, callback
     return false;
   }
 }
-
+2066.52
 /**
  * Helper function to generate search result based on filter.
  */
-iris.modules.irisSolr.globals.generateSearch = function (req, res, template, controller) {
+iris.modules.irisSolr.globals.generateSearch = function (req, res) {
 
+  var query = iris.modules.irisSolr.globals.generateQuery(req.query);
+
+  if (query) {
+
+    iris.modules.irisSolr.globals.executeQuery("search", query, function (result) {
+
+      if (result) {
+        iris.modules.frontend.globals.parseTemplateFile(['custom-search'], ['html'], result, req.authPass, req)
+
+          .then(function (success) {
+
+            res.send(success);
+
+          }, function (fail) {
+
+            iris.modules.frontend.globals.displayErrorPage(500, req, res);
+            iris.log("error", fail);
+
+          });
+      }
+      else {
+
+        return false;
+      }
+    });
+  }
+  else {
+
+    return false;
+  }
 };
 
 /**
@@ -163,7 +201,7 @@ iris.modules.irisSolr.globals.generateQuery = function (content) {
       .start(content.start || 0)
       .rows(content.rows || 10)
   }
-  else{
+  else {
     return false;
   }
 
@@ -194,7 +232,6 @@ iris.modules.irisSolr.globals.getSolrConnection = function (config) {
       iris.message("Error connecting to Solr server. Please check your connection details.", "error");
 
       return false;
-
 
     }
   }

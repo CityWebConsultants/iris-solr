@@ -1,0 +1,48 @@
+<div class="container">
+    <div class="col-md-2">
+        
+    </div>
+
+    <div class="col-md-10">
+
+    </div>
+</div>
+
+<div id="table-wrapper">
+<table id="my-final-table">
+  <thead>
+    <th>eid</th>
+    <th>username</th>
+    <th>entityType</th>
+    <th>roles</th>
+    
+  </thead>
+  {{#each response.docs}}
+  <tbody>
+    
+      <td>{{#each this.eid}}
+        {{this}} 
+      {{/each}}</td>
+      <td>{{#each this.username}}
+        {{this}} 
+      {{/each}}</td>
+      <td>{{#each this.entityType}}
+        {{this}} 
+      {{/each}}</td>
+      <td>{{#each this.roles}}
+        {{this}} 
+      {{/each}}</td>
+    
+  </tbody>
+  {{/each}}
+  <tbody>
+  </tbody>
+</table>
+</div>
+
+<script>
+$(document).ready(function(){
+    
+});
+
+</script>
