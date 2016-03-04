@@ -19,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/facascante/iris-solr/issues"
   },
-  "homepage": "https://github.com/facascante/iris-solr#readme"
+  "homepage": "https://github.com/facascante/iris-solr#readme",
+  "dependencies": {
+    "query-string": "^3.0.1"
+  }
 }

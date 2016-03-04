@@ -40,7 +40,7 @@ iris.route.get('/admin/config/search/solr', search.config, function (req, res) {
 /**
  * Defines configuration form adminSolr.
  */
-iris.modules.irisSolr.registerHook("hook_form_render_adminSolr", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_form_render__adminSolr", 0, function (thisHook, data) {
 
   iris.readConfig('irisSolr', 'adminSolr').then(function (config) {
 
@@ -57,7 +57,7 @@ iris.modules.irisSolr.registerHook("hook_form_render_adminSolr", 0, function (th
 /**
  * Defines search form adminSolr.
  */
-iris.modules.irisSolr.registerHook("hook_form_render_searchSolr", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_form_render__searchSolr", 0, function (thisHook, data) {
 
   iris.modules.irisSolr.globals.renderSearchSolrForm(thisHook, data);
 
@@ -93,19 +93,19 @@ iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, co
     "default": config.path ? config.path : ""
   };
 
-  thisHook.finish(true, data);
+  thisHook.pass(data);
 }
 
 iris.modules.irisSolr.globals.renderSearchSolrForm = function (thisHook, data) {
 
   data.schema.filter = {
-    "type": "text",
+    "type": "string",
     "title": "Search",
     "required": true,
     "default": "*:*"
   };
 
-  thisHook.finish(true, data);
+  thisHook.pass(data);
 }
 
 /**
@@ -279,11 +279,11 @@ iris.modules.irisSolr.globals.getSolrConnection = function (config) {
  * Submit handler for adminSolr.
  * Saves Solr connection details to config.
  */
-iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_form_submit__adminSolr", 0, function (thisHook, data) {
 
   var content = 'title_t:Hello';
 
-  iris.saveConfig(thisHook.const.params, 'irisSolr', 'adminSolr');
+  iris.saveConfig(thisHook.context.params, 'irisSolr', 'adminSolr');
 
   iris.modules.irisSolr.globals.executeQuery("deleteByQuery", content, function (data) {
 
@@ -297,7 +297,7 @@ iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (th
 
     }
 
-    thisHook.finish(true, data);
+    thisHook.pass(data);
 
   });
 
@@ -305,19 +305,15 @@ iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (th
 
 /**
  * Submit handler for searchSolr.
- * Saves Solr connection details to config.
  */
-iris.modules.irisSolr.registerHook("hook_form_submit_searchSolr", 0, function (thisHook, data) {
-  //thisHook.const.req.query = thisHook.const.params;
-  console.log(thisHook.const.req.query);
-  // thisHook.const.res.redirect("/search");
-  //thisHook.finish(true, data);
-  
+iris.modules.irisSolr.registerHook("hook_form_submit__searchSolr", 0, function (thisHook, data) {
   
   const queryString = require('query-string');
-  var path = queryString.stringify(thisHook.const.params);
-  thisHook.finish(true, function (res) {
-
+  
+  var path = queryString.stringify(thisHook.context.params);
+ 
+  thisHook.pass(function (res) {
+    
     res.send({
       redirect: '/search?' + path
     });
@@ -335,7 +331,7 @@ iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, 
 
   iris.modules.irisSolr.globals.executeQuery("add", data, function (resp) {
 
-    thisHook.finish(true, data);
+    thisHook.pass(data);
 
   });
 
@@ -352,7 +348,7 @@ iris.modules.irisSolr.registerHook("hook_entity_updated", 1, function (thisHook,
 
     iris.modules.irisSolr.globals.executeQuery("add", data, function (resp) {
 
-      thisHook.finish(true, data);
+      thisHook.pass(data);
 
     });
 
@@ -366,7 +362,7 @@ iris.modules.irisSolr.registerHook("hook_entity_delete", 1, function (thisHook, 
 
   iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'id:' + data.eid, function (resp) {
 
-    thisHook.finish(true, data);
+    thisHook.pass(data);
 
   });
 
