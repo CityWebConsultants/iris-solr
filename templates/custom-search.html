@@ -1,47 +1,31 @@
+[[[form searchSolr]]]
 <div class="container">
-    <div class="col-md-2">
-        
+  {{#each response.docs}} 
+    {{#compare this.entityType "===" "user"}}
+    <div>
+      <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.username }}</a></h4>
+      <div>
+        <h5>Role : {{ this.roles }}</h5>
+        <h5>Type : {{ this.entityType }}</h5>
+      </div>
+      <br/>
     </div>
-
-    <div class="col-md-10">
-
+    {{/compare}} 
+    {{#compare this.entityType "===" "page"}}
+    <div>
+      <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.title }}</a></h4>
+      <div>
+        <h5>Body : {{ this.body }}</h5>
+        <h5>Type : {{ this.entityType }}</h5>
+      </div>
+      <br/>
     </div>
-</div>
-
-<div id="table-wrapper">
-<table id="my-final-table">
-  <thead>
-    <th>eid</th>
-    <th>username</th>
-    <th>entityType</th>
-    <th>roles</th>
-    
-  </thead>
-  {{#each response.docs}}
-  <tbody>
-    
-      <td>{{#each this.eid}}
-        {{this}} 
-      {{/each}}</td>
-      <td>{{#each this.username}}
-        {{this}} 
-      {{/each}}</td>
-      <td>{{#each this.entityType}}
-        {{this}} 
-      {{/each}}</td>
-      <td>{{#each this.roles}}
-        {{this}} 
-      {{/each}}</td>
-    
-  </tbody>
+    {{/compare}} 
   {{/each}}
-  <tbody>
-  </tbody>
-</table>
 </div>
 
 <script>
-$(document).ready(function(){
+  $(document).ready(function(){
     
 });
 

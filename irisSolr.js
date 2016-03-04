@@ -38,7 +38,7 @@ iris.route.get('/admin/config/search/solr', search.config, function (req, res) {
 });
 
 /**
- * Defines form adminSolr.
+ * Defines configuration form adminSolr.
  */
 iris.modules.irisSolr.registerHook("hook_form_render_adminSolr", 0, function (thisHook, data) {
 
@@ -51,6 +51,15 @@ iris.modules.irisSolr.registerHook("hook_form_render_adminSolr", 0, function (th
     iris.modules.irisSolr.globals.renderAdminSolrForm(thisHook, data, false);
 
   });
+
+});
+
+/**
+ * Defines search form adminSolr.
+ */
+iris.modules.irisSolr.registerHook("hook_form_render_searchSolr", 0, function (thisHook, data) {
+
+  iris.modules.irisSolr.globals.renderSearchSolrForm(thisHook, data);
 
 });
 
@@ -87,10 +96,30 @@ iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, co
   thisHook.finish(true, data);
 }
 
+iris.modules.irisSolr.globals.renderSearchSolrForm = function (thisHook, data) {
 
+  data.schema.filter = {
+    "type": "text",
+    "title": "Search",
+    "required": true,
+    "default": "*:*"
+  };
+
+  thisHook.finish(true, data);
+}
 
 /**
- * Given a generated SQL query, create a Solr connection and execute the query.
+ * @function executeQuery
+ * @memberof irisSolr
+ *
+ * @desc Execute a solr query command
+ *
+ * Wraps and simplifies the process of executing solr query e.g. create, delete and search.
+ *
+ * @param {string} action - type of command the query is for
+ * @param {object} content - either a string query to search or delete in solr format or an object to add into solr database
+ *
+ * @returns a promise which, if successful, return the result object from solr.
  */
 iris.modules.irisSolr.globals.executeQuery = function (action, content, callback) {
 
@@ -275,6 +304,29 @@ iris.modules.irisSolr.registerHook("hook_form_submit_adminSolr", 0, function (th
 });
 
 /**
+ * Submit handler for searchSolr.
+ * Saves Solr connection details to config.
+ */
+iris.modules.irisSolr.registerHook("hook_form_submit_searchSolr", 0, function (thisHook, data) {
+  //thisHook.const.req.query = thisHook.const.params;
+  console.log(thisHook.const.req.query);
+  // thisHook.const.res.redirect("/search");
+  //thisHook.finish(true, data);
+  
+  
+  const queryString = require('query-string');
+  var path = queryString.stringify(thisHook.const.params);
+  thisHook.finish(true, function (res) {
+
+    res.send({
+      redirect: '/search?' + path
+    });
+  });
+  
+
+});
+
+/**
  * Create record handler for Solr.
  */
 iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, data) {
@@ -319,3 +371,4 @@ iris.modules.irisSolr.registerHook("hook_entity_delete", 1, function (thisHook, 
   });
 
 });
+
