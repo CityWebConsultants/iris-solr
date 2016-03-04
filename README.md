@@ -8,6 +8,30 @@
 3. Copy the content of this repo to home/modules/irisSolr folder
 4. enable the Solr Search Module
 ```
+
+## More temporary steps
+
+```
+1. in handlebars_helpers.js, add this code for compare helpers to work
+
+Handlebars.registerHelper('compare', function (lvalue, operator, rvalue, options) {
+    if (arguments.length < 4) {
+      throw new Error("Handlerbars Helper 'compare' needs 3 parameters");
+    }
+
+    var result = eval("'" + lvalue + "' " + operator + " '" + rvalue + "'");
+    if (result) {
+      return options.fn(this);
+    } else {
+      return options.inverse(this);
+    }
+  });
+  
+  
+2. npm install query-string
+3. npm install solr-client
+
+```
 ## How to use
 
 ```
