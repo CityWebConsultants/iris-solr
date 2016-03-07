@@ -35,8 +35,10 @@ Handlebars.registerHelper('compare', function (lvalue, operator, rvalue, options
 ## How to use
 
 ```
-1. Add or Update an entity
-2. navigate to /search
-3. search for an entity that you have added e.g. filter = username:foo or filter = foo
-4. enjoy and help improve the search POC page
+1. navigate to /admin/config/search/solr/
+2. provide your solr server configuration
+3. Add or Update an entity
+4. navigate to /search
+5. search for an entity that you have added e.g. filter = username:foo or filter = foo
+6. enjoy and help improve the search POC page
 ```
