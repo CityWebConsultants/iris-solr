@@ -1,0 +1,34 @@
+
+[[[form searchSolr]]]
+
+<div class="container">
+  {{#each response.docs}} 
+    {{#compare this.entityType "===" "user"}}
+    <div>
+      <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.username }}</a></h4>
+      <div>
+        <h5>Role : {{ this.roles }}</h5>
+        <h5>Type : {{ this.entityType }}</h5>
+      </div>
+      <br/>
+    </div>
+    {{/compare}} 
+    {{#compare this.entityType "===" "page"}}
+    <div>
+      <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.title }}</a></h4>
+      <div>
+        <h5>Body : {{ this.body }}</h5>
+        <h5>Type : {{ this.entityType }}</h5>
+      </div>
+      <br/>
+    </div>
+    {{/compare}} 
+  {{/each}}
+</div>
+
+<script>
+  $(document).ready(function(){
+    
+});
+
+</script>
