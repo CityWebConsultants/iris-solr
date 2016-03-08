@@ -82,7 +82,7 @@ iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, co
   data.schema.core = {
     "type": "text",
     "title": "Core",
-    "required": true,
+    "required": false,
     "default": config.core ? config.core : ""
   };
 
@@ -191,8 +191,9 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
   if (query) {
 
     iris.modules.irisSolr.globals.executeQuery("search", query, function (result) {
-
+      
       if (result) {
+        console.log(result.response.docs[0]);
         iris.modules.frontend.globals.parseTemplateFile(['custom-search'], ['html'], result, req.authPass, req)
 
           .then(function (success) {
@@ -366,5 +367,18 @@ iris.modules.irisSolr.registerHook("hook_entity_delete", 1, function (thisHook, 
 
   });
 
+});
+
+/**
+ * Register Swag handlebars helpers
+ */
+iris.modules.irisSolr.registerHook("hook_frontend_handlebars_extend", 1, function (thisHook, Handlebars) {
+
+  Swag = require('swag');
+ 
+  Swag.registerHelpers(Handlebars);
+
+  thisHook.pass(Handlebars);
+  
 });
 

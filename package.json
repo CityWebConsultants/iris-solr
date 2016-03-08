@@ -21,6 +21,8 @@
   },
   "homepage": "https://github.com/facascante/iris-solr#readme",
   "dependencies": {
-    "query-string": "^3.0.1"
+    "query-string": "^3.0.1",
+    "solr-client": "^0.6.0",
+    "swag": "^0.7.0"
   }
 }
