@@ -143,10 +143,10 @@ iris.modules.irisSolr.globals.indexify = function (content) {
     }
     return ncontent;
   }
-  else{
+  else {
     return content;
   }
-  
+
 }
 
 /**
@@ -168,9 +168,10 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, callback
   if (action !== false) {
 
     try {
-      
-      content = iris.modules.irisSolr.globals.indexify(content);
-      
+      if(action == "add"){
+        content = iris.modules.irisSolr.globals.indexify(content);
+      }
+
       var connection = iris.modules.irisSolr.globals.getSolrConnection(null);
       if (connection) {
         connection[action](content, function (err, obj) {
@@ -235,7 +236,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
   if (query) {
 
     iris.modules.irisSolr.globals.executeQuery("search", query, function (result) {
-
+    
       if (result) {
 
         iris.modules.frontend.globals.parseTemplateFile(['custom-search'], ['html'], result, req.authPass, req)
