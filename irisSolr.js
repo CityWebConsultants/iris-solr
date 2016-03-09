@@ -120,7 +120,7 @@ iris.modules.irisSolr.globals.indexify = function (content) {
     for (var i in content) {
       switch (true) {
         case ((typeof content[i]) === "string" && !(/^\d+$/.test(content[i]))):
-          ncontent[i + "_s"] = content[i];
+          ncontent[i + "_txt"] = content[i];
           break;
         case ((typeof content[i]) === "boolean"):
           ncontent[i + "_b"] = content[i];
@@ -130,6 +130,9 @@ iris.modules.irisSolr.globals.indexify = function (content) {
           break;
         case ((typeof content[i]) === "number"):
           ncontent[i + "_i"] = content[i];
+          break;
+        case (i === '_id'):
+          ncontent['id'] = content[i].toString();
           break;
         case /^\d+$/.test(content[i]):
           ncontent[i + "_i"] = Number(content[i]);
