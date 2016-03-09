@@ -3,7 +3,7 @@
 
 <div class="container">
   {{#each response.docs}} 
-    {{#compare this.entityType "===" "user"}}
+    {{#is this.entityType.[0] "user"}}
     <div>
       <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.username }}</a></h4>
       <div>
@@ -12,8 +12,8 @@
       </div>
       <br/>
     </div>
-    {{/compare}} 
-    {{#compare this.entityType "===" "page"}}
+    {{/is}} 
+    {{#is this.entityType.[0] "page"}}
     <div>
       <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.title }}</a></h4>
       <div>
@@ -22,7 +22,7 @@
       </div>
       <br/>
     </div>
-    {{/compare}} 
+    {{/is}} 
   {{/each}}
 </div>
 

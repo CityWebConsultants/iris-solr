@@ -82,7 +82,7 @@ iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, co
   data.schema.core = {
     "type": "text",
     "title": "Core",
-    "required": true,
+    "required": false,
     "default": config.core ? config.core : ""
   };
 
@@ -109,6 +109,44 @@ iris.modules.irisSolr.globals.renderSearchSolrForm = function (thisHook, data) {
 }
 
 /**
+ * @function indexify
+ * @memberof irisSolr
+ *
+ */
+
+iris.modules.irisSolr.globals.indexify = function (content) {
+  if (typeof content === 'object') {
+    var ncontent = {};
+    for (var i in content) {
+      switch (true) {
+        case ((typeof content[i]) === "string" && !(/^\d+$/.test(content[i]))):
+          ncontent[i + "_s"] = content[i];
+          break;
+        case ((typeof content[i]) === "boolean"):
+          ncontent[i + "_b"] = content[i];
+          break;
+        case ((typeof content[i]) === "date"):
+          ncontent[i + "_dt"] = content[i];
+          break;
+        case ((typeof content[i]) === "number"):
+          ncontent[i + "_i"] = content[i];
+          break;
+        case /^\d+$/.test(content[i]):
+          ncontent[i + "_i"] = Number(content[i]);
+          break;
+        default:
+          ncontent[i] = content[i];
+      }
+    }
+    return ncontent;
+  }
+  else{
+    return content;
+  }
+  
+}
+
+/**
  * @function executeQuery
  * @memberof irisSolr
  *
@@ -121,12 +159,15 @@ iris.modules.irisSolr.globals.renderSearchSolrForm = function (thisHook, data) {
  *
  * @returns a promise which, if successful, return the result object from solr.
  */
+
 iris.modules.irisSolr.globals.executeQuery = function (action, content, callback) {
 
   if (action !== false) {
 
     try {
-
+      
+      content = iris.modules.irisSolr.globals.indexify(content);
+      
       var connection = iris.modules.irisSolr.globals.getSolrConnection(null);
       if (connection) {
         connection[action](content, function (err, obj) {
@@ -180,7 +221,7 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, callback
     return false;
   }
 }
-2066.52
+
 /**
  * Helper function to generate search result based on filter.
  */
@@ -193,6 +234,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
     iris.modules.irisSolr.globals.executeQuery("search", query, function (result) {
 
       if (result) {
+
         iris.modules.frontend.globals.parseTemplateFile(['custom-search'], ['html'], result, req.authPass, req)
 
           .then(function (success) {
@@ -307,18 +349,18 @@ iris.modules.irisSolr.registerHook("hook_form_submit__adminSolr", 0, function (t
  * Submit handler for searchSolr.
  */
 iris.modules.irisSolr.registerHook("hook_form_submit__searchSolr", 0, function (thisHook, data) {
-  
+
   const queryString = require('query-string');
-  
+
   var path = queryString.stringify(thisHook.context.params);
- 
+
   thisHook.pass(function (res) {
-    
+
     res.send({
       redirect: '/search?' + path
     });
   });
-  
+
 
 });
 
@@ -326,8 +368,6 @@ iris.modules.irisSolr.registerHook("hook_form_submit__searchSolr", 0, function (
  * Create record handler for Solr.
  */
 iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, data) {
-
-  data.id = data._id
 
   iris.modules.irisSolr.globals.executeQuery("add", data, function (resp) {
 
@@ -342,9 +382,7 @@ iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, 
  */
 iris.modules.irisSolr.registerHook("hook_entity_updated", 1, function (thisHook, data) {
 
-  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'id:' + data.eid, function (resp) {
-
-    data.id = data._id
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'eid_i:' + data.eid, function (resp) {
 
     iris.modules.irisSolr.globals.executeQuery("add", data, function (resp) {
 
@@ -358,13 +396,26 @@ iris.modules.irisSolr.registerHook("hook_entity_updated", 1, function (thisHook,
 /**
  * Delete record handler for Solr.
  */
-iris.modules.irisSolr.registerHook("hook_entity_delete", 1, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_entity_deleted", 0, function (thisHook, data) {
 
-  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'id:' + data.eid, function (resp) {
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'eid_i:' + data.eid, function (resp) {
 
     thisHook.pass(data);
 
   });
+
+});
+
+/**
+ * Register Swag handlebars helpers
+ */
+iris.modules.irisSolr.registerHook("hook_frontend_handlebars_extend", 1, function (thisHook, Handlebars) {
+
+  Swag = require('swag');
+
+  Swag.registerHelpers(Handlebars);
+
+  thisHook.pass(Handlebars);
 
 });
 
