@@ -265,7 +265,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
 
           counter += 1;
 
-          if (counter === count) {
+          if (counter >= count) {
 
             done();
 
@@ -273,7 +273,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
 
 
         }
-
+        
         result.response.docs.forEach(function(result) {
 
           var entityQuery = {
@@ -283,7 +283,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
               operator: 'IS',
               value: result.eid[0]
             }]
-          }
+          };
           iris.invokeHook("hook_entity_fetch", req.authPass, null, entityQuery)
             .then(function (entity) {
 
@@ -291,12 +291,10 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
                 iris.modules.frontend.globals.parseTemplateFile(['solrresult', result.entityType[0]], null, entity[0], req.authPass, req)
 
                   .then(function (output) {
-
                     markup += output;
                     next();
 
                   }, function (fail) {
-
                     iris.modules.frontend.globals.displayErrorPage(500, req, res);
                     iris.log("error", fail);
 
@@ -307,12 +305,15 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
               }
 
             }, function (fail) {
-
+              next();
               iris.log("error", fail);
 
             });
 
         });
+        if(result.response.docs.length == 0){
+          next();
+        }
 
       }
       else {
