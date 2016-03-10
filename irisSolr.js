@@ -115,12 +115,12 @@ iris.modules.irisSolr.globals.renderSearchSolrForm = function (thisHook, data) {
  */
 
 iris.modules.irisSolr.globals.indexify = function (content) {
-  if (typeof content === 'object') {
+ /* if (typeof content === 'object') {
     var ncontent = {};
     for (var i in content) {
       switch (true) {
         case ((typeof content[i]) === "string" && !(/^\d+$/.test(content[i]))):
-          ncontent[i + "_txt"] = content[i];
+          ncontent[i + "_t"] = content[i];
           break;
         case ((typeof content[i]) === "boolean"):
           ncontent[i + "_b"] = content[i];
@@ -145,8 +145,8 @@ iris.modules.irisSolr.globals.indexify = function (content) {
   }
   else {
     return content;
-  }
-
+  }*/
+  return content;
 }
 
 /**
@@ -239,18 +239,81 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
     
       if (result) {
 
-        iris.modules.frontend.globals.parseTemplateFile(['custom-search'], ['html'], result, req.authPass, req)
+        var markup = "";
+        var done = function () {
 
-          .then(function (success) {
+          iris.modules.frontend.globals.parseTemplateFile(['custom-search'], ['html'], {results: markup}, req.authPass, req)
 
-            res.send(success);
+            .then(function (output) {
 
-          }, function (fail) {
+              res.send(output);
 
-            iris.modules.frontend.globals.displayErrorPage(500, req, res);
-            iris.log("error", fail);
+            }, function (fail) {
 
-          });
+              iris.modules.frontend.globals.displayErrorPage(500, req, res);
+              iris.log("error", fail);
+
+            });
+
+
+        }
+
+        var count = result.response.docs.length,
+          counter = 0;
+
+        var next = function () {
+
+          counter += 1;
+
+          if (counter === count) {
+
+            done();
+
+          }
+
+
+        }
+
+        result.response.docs.forEach(function(result) {
+
+          var entityQuery = {
+            entities: [result.entityType[0]],
+            queries: [{
+              field: 'eid',
+              operator: 'IS',
+              value: result.eid[0]
+            }]
+          }
+          iris.invokeHook("hook_entity_fetch", req.authPass, null, entityQuery)
+            .then(function (entity) {
+
+              if (entity[0]) {
+                iris.modules.frontend.globals.parseTemplateFile(['solrresult', result.entityType[0]], null, entity[0], req.authPass, req)
+
+                  .then(function (output) {
+
+                    markup += output;
+                    next();
+
+                  }, function (fail) {
+
+                    iris.modules.frontend.globals.displayErrorPage(500, req, res);
+                    iris.log("error", fail);
+
+                  });
+              }
+              else {
+                next();
+              }
+
+            }, function (fail) {
+
+              iris.log("error", fail);
+
+            });
+
+        });
+
       }
       else {
 

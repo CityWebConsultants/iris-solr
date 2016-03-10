@@ -1,34 +1,5 @@
 
 [[[form searchSolr]]]
 
-<div class="container">
-  {{#each response.docs}} 
-    {{#is this.entityType_s "user"}}
-    <div>
-      <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.username }}</a></h4>
-      <div>
-        <h5>Role : {{ this.roles }}</h5>
-        <h5>Type : {{ this.entityType_s }}</h5>
-      </div>
-      <br/>
-    </div>
-    {{/is}} 
-    {{#is this.entityType_s "page"}}
-    <div>
-      <h4><a href="/{{ this.entityType }}/{{this.eid}}">{{ this.title }}</a></h4>
-      <div>
-        <h5>Body : {{ this.body_s }}</h5>
-        <h5>Type : {{ this.entityType_s }}</h5>
-      </div>
-      <br/>
-    </div>
-    {{/is}} 
-  {{/each}}
-</div>
 
-<script>
-  $(document).ready(function(){
-    
-});
-
-</script>
+{{{results}}}
