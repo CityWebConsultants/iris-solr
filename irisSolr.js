@@ -12,30 +12,31 @@ var search = {
     "description": "search query in solr",
     "permission": ["can fetch page"]
   },
-  index_config :  {
+  index_config: {
     "title": "Search Field Configuration",
     "description": "Define each field index and search boost",
     "permission": ["can fetch page"]
   }
-  
+
 };
 
-iris.route.get('/search', search.query, function (req, res) {
+iris.route.get('/search', search.query, function(req, res) {
   iris.modules.irisSolr.globals.generateSearch(req, res);
 });
 
 /**
  * Endpoint to manage Solr connection details.
  */
+
 iris.route.get('/admin/config/search/solr', search.connection_config, function (req, res) {
-  
+
   iris.modules.frontend.globals.parseTemplateFile(["solrconnection"], ['admin_wrapper'], {
     'current': req.irisRoute.options,
-  }, req.authPass, req).then(function (success) {
+  }, req.authPass, req).then(function(success) {
 
     res.send(success);
 
-  }, function (fail) {
+  }, function(fail) {
 
     iris.modules.frontend.globals.displayErrorPage(500, req, res);
 
@@ -47,15 +48,14 @@ iris.route.get('/admin/config/search/solr', search.connection_config, function (
 /**
  * TODO : it display just a copy paste content list of entities 
  */
-iris.route.get("/admin/config/search/solr/entities", search.index_config, function (req, res) {
+iris.route.get("/admin/config/search/solr/entities", search.index_config, function(req, res) {
 
 
-  iris.modules.frontend.globals.parseTemplateFile(["solrentities"], ['admin_wrapper'], {
-  }, req.authPass, req).then(function (success) {
+  iris.modules.frontend.globals.parseTemplateFile(["solrentities"], ['admin_wrapper'], {}, req.authPass, req).then(function (success) {
 
     res.send(success)
 
-  }, function (fail) {
+  }, function(fail) {
 
     iris.modules.frontend.globals.displayErrorPage(500, req, res);
 
@@ -65,11 +65,10 @@ iris.route.get("/admin/config/search/solr/entities", search.index_config, functi
 
 });
 
+
 iris.modules.irisSolr.globals.generateEntityForm = function(thisHook, data, config) {
 
-
   var entityTypes = Object.keys(iris.dbCollections);
-
   var fields = [];
 
   var getFields = function (entity) {
@@ -88,9 +87,13 @@ iris.modules.irisSolr.globals.generateEntityForm = function(thisHook, data, conf
 
   entityTypes.forEach(function (type) {
 
-    var schema = iris.dbSchemaConfig[type];
-
     fields = {};
+    var schema = JSON.parse(JSON.stringify(iris.dbSchemaConfig[type]));
+
+    // Add defaults.
+    schema.fields['entityType'] = {'fieldType' : 'Textfield'}
+    schema.fields['entityAuthor'] = {'fieldType' : 'Number'}
+    schema.fields['eid'] = {'fieldType' : 'Number'}
 
     getFields(schema.fields);
 
@@ -158,7 +161,9 @@ iris.modules.irisSolr.globals.generateEntityForm = function(thisHook, data, conf
  * Defines form solrEntities.
  * All entity and field specific settings.
  */
+
 iris.modules.irisSolr.registerHook("hook_form_render__solrEntities", 0, function (thisHook, data) {
+
 
   iris.readConfig('irisSolr', 'solrEntities').then(function (config) {
 
@@ -193,13 +198,13 @@ iris.modules.irisSolr.registerHook("hook_form_submit__solrEntities", 0, function
 /**
  * Defines configuration form adminSolr.
  */
-iris.modules.irisSolr.registerHook("hook_form_render__adminSolr", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_form_render__adminSolr", 0, function(thisHook, data) {
 
-  iris.readConfig('irisSolr', 'adminSolr').then(function (config) {
+  iris.readConfig('irisSolr', 'adminSolr').then(function(config) {
 
     iris.modules.irisSolr.globals.renderAdminSolrForm(thisHook, data, config);
 
-  }, function (fail) {
+  }, function(fail) {
 
     iris.modules.irisSolr.globals.renderAdminSolrForm(thisHook, data, false);
 
@@ -210,13 +215,13 @@ iris.modules.irisSolr.registerHook("hook_form_render__adminSolr", 0, function (t
 /**
  * Defines search form adminSolr.
  */
-iris.modules.irisSolr.registerHook("hook_form_render__searchSolr", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_form_render__searchSolr", 0, function(thisHook, data) {
 
   iris.modules.irisSolr.globals.renderSearchSolrForm(thisHook, data);
 
 });
 
-iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, config) {
+iris.modules.irisSolr.globals.renderAdminSolrForm = function(thisHook, data, config) {
 
   data.schema.host = {
     "type": "text",
@@ -249,7 +254,7 @@ iris.modules.irisSolr.globals.renderAdminSolrForm = function (thisHook, data, co
   thisHook.pass(data);
 }
 
-iris.modules.irisSolr.globals.renderSearchSolrForm = function (thisHook, data) {
+iris.modules.irisSolr.globals.renderSearchSolrForm = function(thisHook, data) {
 
   data.schema.filter = {
     "type": "string",
@@ -267,39 +272,21 @@ iris.modules.irisSolr.globals.renderSearchSolrForm = function (thisHook, data) {
  *
  */
 
-iris.modules.irisSolr.globals.indexify = function (content) {
- /* if (typeof content === 'object') {
-    var ncontent = {};
-    for (var i in content) {
-      switch (true) {
-        case ((typeof content[i]) === "string" && !(/^\d+$/.test(content[i]))):
-          ncontent[i + "_t"] = content[i];
-          break;
-        case ((typeof content[i]) === "boolean"):
-          ncontent[i + "_b"] = content[i];
-          break;
-        case ((typeof content[i]) === "date"):
-          ncontent[i + "_dt"] = content[i];
-          break;
-        case ((typeof content[i]) === "number"):
-          ncontent[i + "_i"] = content[i];
-          break;
-        case (i === '_id'):
-          ncontent['id'] = content[i].toString();
-          break;
-        case /^\d+$/.test(content[i]):
-          ncontent[i + "_i"] = Number(content[i]);
-          break;
-        default:
-          ncontent[i] = content[i];
-      }
-    }
-    return ncontent;
+iris.modules.irisSolr.globals.indexify = function(content) {
+
+  var config = iris.readConfigSync('irisSolr', 'solrEntities');
+
+  if (config[content.entityType]) {
+
+
+
   }
-  else {
-    return content;
-  }*/
+
+  // Ensure the solr document id is our entityType + eid.
+  content['id'] = content.entityType + ':' + content.eid;
+
   return content;
+
 }
 
 /**
@@ -316,18 +303,18 @@ iris.modules.irisSolr.globals.indexify = function (content) {
  * @returns a promise which, if successful, return the result object from solr.
  */
 
-iris.modules.irisSolr.globals.executeQuery = function (action, content, callback) {
+iris.modules.irisSolr.globals.executeQuery = function(action, content, callback) {
 
   if (action !== false) {
 
     try {
-      if(action == "add"){
+      if (action == "add") {
         content = iris.modules.irisSolr.globals.indexify(content);
       }
 
       var connection = iris.modules.irisSolr.globals.getSolrConnection(null);
       if (connection) {
-        connection[action](content, function (err, obj) {
+        connection[action](content, function(err, obj) {
 
           if (err) {
 
@@ -337,7 +324,7 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, callback
 
           } else {
 
-            connection.commit({ waitSearcher: false }, function (err, resp) {
+            connection.commit({ waitSearcher: false }, function(err, resp) {
 
               if (err) {
 
@@ -382,26 +369,26 @@ iris.modules.irisSolr.globals.executeQuery = function (action, content, callback
 /**
  * Helper function to generate search result based on filter.
  */
-iris.modules.irisSolr.globals.generateSearch = function (req, res) {
+iris.modules.irisSolr.globals.generateSearch = function(req, res) {
 
   var query = iris.modules.irisSolr.globals.generateQuery(req.query);
 
   if (query) {
 
-    iris.modules.irisSolr.globals.executeQuery("search", query, function (result) {
-    
+    iris.modules.irisSolr.globals.executeQuery("search", query, function(result) {
+
       if (result) {
 
         var markup = "";
-        var done = function () {
+        var done = function() {
 
-          iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: markup}, req.authPass, req)
+          iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], { results: markup }, req.authPass, req)
 
-            .then(function (output) {
+            .then(function(output) {
 
               res.send(output);
 
-            }, function (fail) {
+            }, function(fail) {
 
               iris.modules.frontend.globals.displayErrorPage(500, req, res);
               iris.log("error", fail);
@@ -414,7 +401,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
         var count = result.response.docs.length,
           counter = 0;
 
-        var next = function () {
+        var next = function() {
 
           counter += 1;
 
@@ -426,7 +413,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
 
 
         }
-        
+
         result.response.docs.forEach(function(result) {
 
           var entityQuery = {
@@ -438,16 +425,16 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
             }]
           };
           iris.invokeHook("hook_entity_fetch", req.authPass, null, entityQuery)
-            .then(function (entity) {
+            .then(function(entity) {
 
               if (entity[0]) {
                 iris.modules.frontend.globals.parseTemplateFile(['solrresult', result.entityType[0]], null, entity[0], req.authPass, req)
 
-                  .then(function (output) {
+                  .then(function(output) {
                     markup += output;
                     next();
 
-                  }, function (fail) {
+                  }, function(fail) {
                     iris.modules.frontend.globals.displayErrorPage(500, req, res);
                     iris.log("error", fail);
 
@@ -457,14 +444,14 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
                 next();
               }
 
-            }, function (fail) {
+            }, function(fail) {
               next();
               iris.log("error", fail);
 
             });
 
         });
-        if(result.response.docs.length == 0){
+        if (result.response.docs.length == 0) {
           next();
         }
 
@@ -484,7 +471,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
 /**
  * Helper function to generate filter base from url.
  */
-iris.modules.irisSolr.globals.generateQuery = function (content) {
+iris.modules.irisSolr.globals.generateQuery = function(content) {
 
   var connection = iris.modules.irisSolr.globals.getSolrConnection(null);
   if (connection) {
@@ -502,7 +489,7 @@ iris.modules.irisSolr.globals.generateQuery = function (content) {
 /**
  * Initialize the connection object.
  */
-iris.modules.irisSolr.globals.getSolrConnection = function (config) {
+iris.modules.irisSolr.globals.getSolrConnection = function(config) {
 
   config = config || iris.readConfigSync('irisSolr', 'adminSolr');
   if (config) {
@@ -542,13 +529,13 @@ iris.modules.irisSolr.globals.getSolrConnection = function (config) {
  * Submit handler for adminSolr.
  * Saves Solr connection details to config.
  */
-iris.modules.irisSolr.registerHook("hook_form_submit__adminSolr", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_form_submit__adminSolr", 0, function(thisHook, data) {
 
   var content = 'title_t:Hello';
 
   iris.saveConfig(thisHook.context.params, 'irisSolr', 'adminSolr');
 
-  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", content, function (data) {
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", content, function(data) {
 
     if (data.responseHeader && data.responseHeader.status == 0) {
 
@@ -569,13 +556,13 @@ iris.modules.irisSolr.registerHook("hook_form_submit__adminSolr", 0, function (t
 /**
  * Submit handler for searchSolr.
  */
-iris.modules.irisSolr.registerHook("hook_form_submit__searchSolr", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_form_submit__searchSolr", 0, function(thisHook, data) {
 
   const queryString = require('query-string');
 
   var path = queryString.stringify(thisHook.context.params);
 
-  thisHook.pass(function (res) {
+  thisHook.pass(function(res) {
 
     res.send({
       redirect: '/search?' + path
@@ -622,11 +609,15 @@ var flatten = function(content) {
 /**
  * Create record handler for Solr.
  */
+
 iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, data) {
 
   var config = iris.readConfigSync('irisSolr', 'solrEntities');
+
   if (config[data.entityType] && config[data.entityType].indexEntity === true) {
-    var flat = flatten(data);
+
+    var flat = iris.modules.irisSolr.globals.flatten(data);
+
     iris.modules.irisSolr.globals.executeQuery("add", flat, function (resp) {
 
       thisHook.pass(data);
@@ -641,30 +632,57 @@ iris.modules.irisSolr.registerHook("hook_entity_create", 1, function (thisHook, 
 
 });
 
+var filterFields = function(content, config) {
+
+  Object.keys(content).forEach(function(field) {
+
+    if (config.fields[field].indexField != 'index') {
+
+      delete content[field];
+
+    }
+
+  })
+
+  return content;
+}
+
 /**
  * Update record handler for Solr.
  */
-iris.modules.irisSolr.registerHook("hook_entity_updated", 1, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_entity_updated", 1, function(thisHook, data) {
 
   var config = iris.readConfigSync('irisSolr', 'solrEntities');
-  var flat = flatten(data);
-  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'eid:' + data.eid, function (resp) {
 
-    iris.modules.irisSolr.globals.executeQuery("add", flat, function (resp) {
+  if (config[data.entityType] && config[data.entityType].indexEntity === true) {
 
-      thisHook.pass(data);
+    var flat = iris.modules.irisSolr.globals.flatten(data);
+
+    flat = filterFields(flat, config[data.entityType]);
+
+    iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'eid:' + data.eid, function (resp) {
+
+      iris.modules.irisSolr.globals.executeQuery("add", flat, function (resp) {
+
+        thisHook.pass(data);
+
+      });
 
     });
+  }
+  else {
 
-  });
+    thisHook.pass(data);
+
+  }
 });
 
 /**
  * Delete record handler for Solr.
  */
-iris.modules.irisSolr.registerHook("hook_entity_deleted", 0, function (thisHook, data) {
+iris.modules.irisSolr.registerHook("hook_entity_deleted", 0, function(thisHook, data) {
 
-  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'eid:' + data.eid, function (resp) {
+  iris.modules.irisSolr.globals.executeQuery("deleteByQuery", 'eid:' + data.eid, function(resp) {
 
     thisHook.pass(data);
 
@@ -675,7 +693,7 @@ iris.modules.irisSolr.registerHook("hook_entity_deleted", 0, function (thisHook,
 /**
  * Register Swag handlebars helpers
  */
-iris.modules.irisSolr.registerHook("hook_frontend_handlebars_extend", 1, function (thisHook, Handlebars) {
+iris.modules.irisSolr.registerHook("hook_frontend_handlebars_extend", 1, function(thisHook, Handlebars) {
 
   Swag = require('swag');
 
@@ -685,224 +703,33 @@ iris.modules.irisSolr.registerHook("hook_frontend_handlebars_extend", 1, functio
 
 });
 
-/** 
- * TODO : This one is just copied from schemaui and is not working yet :(
-*/
-/*iris.modules.irisSolr.registerHook("hook_form_render__indexFieldListing", 0, function (thisHook, data) {
+iris.modules.irisSolr.globals.flatten = function(content) {
+  var result = {};
 
-
-  if (thisHook.context.params[1]) {
-
-    var entityType = thisHook.context.params[1];
-
-    if (!iris.dbSchemaConfig[entityType]) {
-
-      iris.message(thisHook.authPass.userid, "No such entity type", "error");
-
-      thisHook.fail(data);
-
-      return false;
-
-    }
-
-
-    var entityTypeSchema = iris.dbSchemaConfig[entityType];
-    // Parent is required to know which fields to list.
-    var parent = thisHook.context.params[2];
-
-    if (parent) {
-
-      var recurseFields = function (object, elementParent) {
-
-          for (element in object) {
-
-            if (element == parent) {
-
-              parentSchema = object[element];
-              fields = object[element].subfields;
-
-              return;
-
-            } else if (typeof object[element].fieldType != 'undefined' && object[element].fieldType == 'Fieldset') {
-
-              recurseFields(object[element].subfields, element);
-
-            }
-
-          };
+  function recurse(cur, prop) {
+    if (Object(cur) !== cur) {
+      if (result[prop]) {
+        if (!Array.isArray(result[prop])) {
+          result[prop] = [result[prop]];
         }
-        // Do recursion to find the desired fields to list as they may be nested.
-      recurseFields(entityTypeSchema.fields, parent);
-
+        result[prop].push(cur);
+      }
+      else {
+        result[prop] = cur;
+      }
+    } else if (Array.isArray(cur)) {
+      for (var i = 0, l = cur.length; i < l; i++)
+        recurse(cur[i], prop);
+      if (l == 0) result[prop] = [];
     } else {
-      parentSchema = entityTypeSchema.fields;
-      fields = entityTypeSchema.fields;
+      var isEmpty = true;
+      for (var p in cur) {
+        isEmpty = false;
+        recurse(cur[p], p);
+      }
+      if (isEmpty && prop) result[prop] = {};
     }
-
-    var rows = [];
-    var weightsList = [];
-
-    // Loop over each field to add to the table.
-    Object.keys(fields).forEach(function (fieldName) {
-
-      var row = {};
-
-      if (!parentSchema.subfields) {
-        var field = JSON.parse(JSON.stringify(parentSchema[fieldName]));
-      } else {
-        var field = JSON.parse(JSON.stringify(parentSchema.subfields[fieldName]));
-      }
-
-
-      row['fieldLabel'] = field.label;
-      row['fieldId'] = fieldName;
-      row['fieldType'] = field.fieldType;
-      row['fieldWeight'] = field.weight;
-      row['fieldEdit'] = '<a href="/admin/config/solr/' + entityType + '/' + fieldName + '" >Edit</a>';
-      row['fieldDelete'] = '<a href="/admin/config/solr/' + entityType + '/' + fieldName + '/delete" >Delete</a>';
-      rows.push(row);
-
-      // Currently a hacky way to alter the weights of fields, this creates a fidden field that gets updated
-      // when the user re-orders the table.
-      weightsList.push({
-        "machineName": 'weight_' + fieldName,
-        "weight": field.weight
-      });
-    });
-
-    // Order the rows by weight.
-    rows.sort(function (a, b) {
-
-      if (a.fieldWeight > b.fieldWeight) {
-
-        return 1;
-
-      } else if (a.fieldWeight < b.fieldWeight) {
-
-        return -1;
-
-      } else {
-
-        return 0;
-
-      }
-
-    });
-
-    // Generate table markup. This should be replaced with a handlebars wrapper that generates a table from JSON.
-    var tableHtml = '<table>' +
-      '<thead>' +
-      '<th></th>' +
-      '<th>Label</th>' +
-      '<th>Machine name</th>' +
-      '<th>Type</th>' +
-      '<th>Edit</th>' +
-      '<th>Delete</th>' +
-      '</thead>' +
-      '<tbody class="ui-sortable">';
-    var counter = 0;
-    rows.forEach(function (tableRow) {
-
-      tableHtml += '<tr>';
-      tableHtml += '<td><span class="glyphicon glyphicon-resize-vertical"></span></td>';
-      for (tableCell in tableRow) {
-        tableHtml += "<td class=\"" + tableCell + "\">" + tableRow[tableCell] + "</td>";
-      };
-
-      tableHtml += '</tr>';
-
-    });
-    tableHtml += '</tbody></table>';
-
-
-
-    var weightFields = {
-      "type": "array",
-      "title": "weights",
-      "items": {
-        "type": "object",
-        "properties": {
-          "weight": {
-            "type": "number",
-          },
-          "machineName": {
-            "type": "hidden"
-          }
-        }
-      }
-    };
-
-    data.schema = {
-      "table": {
-        "type": "markup",
-        "markup": tableHtml
-      },
-      weightFields,
-      "label": {
-        "type": "text",
-        "title": "Field label"
-      },
-      "machineName": {
-        "type": "text",
-        "title": "Database name",
-      },
-      "fieldType": {
-        "type": "text",
-        "title": "Field type",
-        "enum": Object.keys(iris.fieldTypes).concat(["Fieldset"])
-      },
-      "entityType": {
-        "type": "hidden",
-      },
-      parentItem: {
-        "type": "hidden",
-      }
-    };
-
-    data.form = [
-      "table",
-      "weightFields",
-      "entityType",
-      "parentItem",
-      {
-        "type": "fieldset",
-        "title": "Add new field",
-        "expandable": true,
-        "items": [
-          {
-            "key": "label",
-            "onKeyUp": function (evt, node) {
-              var label = $("input[name=label]").val();
-              label = label.replace(/[^a-zA-Z]+/g, "_").toLowerCase();
-              $('#machineNameBuilder').html(label);
-              $("input[name=machineName]").val(label);
-            }
-          },
-          {
-            "key": "machineName",
-            "onInsert": function (evt, node) {
-              $("input[name=machineName]").before("<div id=\"machineNameBuilder\"></div>");
-            }
-          },
-          "fieldType"
-        ]
-      },
-      {
-        "type": "submit",
-        "title": "Save"
-      }
-    ];
-
-    data.value.parentItem = parent;
-    data.value.weightFields = weightsList;
-    data.value.entityType = entityType;
-
-    thisHook.pass(data);
-  } else {
-    thisHook.fail(data);
-    iris.log("error", "No entityType field passed to hook_form_render__schemaFieldListing");
   }
-
-});
-
-*/
+  recurse(content, "");
+  return result;
+}
