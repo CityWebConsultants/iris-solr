@@ -2,7 +2,7 @@
 iris.modules.auth.globals.registerPermission("can fetch page", "Search", "Can user search records");
 
 var search = {
-  config: {
+  connection_config: {
     "title": "Search Configuration",
     "description": "Solr server connection settings",
     "permission": ["can fetch page"]
@@ -11,7 +11,13 @@ var search = {
     "title": "Search query",
     "description": "search query in solr",
     "permission": ["can fetch page"]
+  },
+  index_config :  {
+    "title": "Search Field Configuration",
+    "description": "Define each field index and search boost",
+    "permission": ["can fetch page"]
   }
+  
 };
 
 iris.route.get('/search', search.query, function (req, res) {
@@ -21,8 +27,113 @@ iris.route.get('/search', search.query, function (req, res) {
 /**
  * Endpoint to manage Solr connection details.
  */
-iris.route.get('/admin/config/search/solr', search.config, function (req, res) {
-  iris.modules.frontend.globals.parseTemplateFile(["admin-solr"], ['html'], {
+iris.route.get('/admin/config/search/solr', search.connection_config, function (req, res) {
+  
+  // If not admin, present 403 page
+
+  if (req.authPass.roles.indexOf('admin') === -1) {
+
+    iris.modules.frontend.globals.displayErrorPage(403, req, res);
+
+    return false;
+
+  }
+  
+  iris.modules.frontend.globals.parseTemplateFile(["solrconnection"], ['admin_wrapper'], {
+    'current': req.irisRoute.options,
+  }, req.authPass, req).then(function (success) {
+
+    res.send(success);
+
+  }, function (fail) {
+
+    iris.modules.frontend.globals.displayErrorPage(500, req, res);
+
+    iris.log("error", fail);
+
+  });
+});
+
+/**
+ * TODO : it display just a copy paste content list of entities 
+ */
+iris.route.get("/admin/config/search/solr/entities", search.index_config, function (req, res) {
+
+  // If not admin, present 403 page
+
+  if (req.authPass.roles.indexOf('admin') === -1) {
+
+    iris.modules.frontend.globals.displayErrorPage(403, req, res);
+
+    return false;
+
+  }
+
+  iris.modules.frontend.globals.parseTemplateFile(["solrentities"], ['admin_wrapper'], {
+    entityTypes: Object.keys(iris.dbCollections)
+  }, req.authPass, req).then(function (success) {
+
+    res.send(success)
+
+  }, function (fail) {
+
+    iris.modules.frontend.globals.displayErrorPage(500, req, res);
+
+    iris.log("error", fail);
+
+  });
+
+});
+
+/**
+ * TODO : it display just a copy paste content schema not working yet :(
+ */
+iris.route.get("/admin/config/search/solr/:type/manage-fields", search.index_config, function (req, res) {
+
+  // If not admin, present 403 page
+
+  if (req.authPass.roles.indexOf('admin') === -1) {
+
+    iris.modules.frontend.globals.displayErrorPage(403, req, res);
+
+    return false;
+
+  }
+
+  // Render admin_schema_manage_fields template.
+  iris.modules.frontend.globals.parseTemplateFile(["solr_entities_manage_index"], ['admin_wrapper'], {
+    entityType: req.params.type
+  }, req.authPass, req).then(function (success) {
+
+    res.send(success)
+
+  }, function (fail) {
+
+    iris.modules.frontend.globals.displayErrorPage(500, req, res);
+
+    iris.log("error", fail);
+
+  });
+
+});
+
+/**
+ * TODO : this one is just to render page yet not working 
+ * Endpoint to manage Solr index config details.
+ */
+iris.route.get('/admin/config/search/solr/fields', search.index_config, function (req, res) {
+  
+  // If not admin, present 403 page
+
+  if (req.authPass.roles.indexOf('admin') === -1) {
+
+    iris.modules.frontend.globals.displayErrorPage(403, req, res);
+
+    return false;
+
+  }
+  
+  iris.modules.frontend.globals.parseTemplateFile(["solrindex"], ['html'], {
     'current': req.irisRoute.options,
   }, req.authPass, req).then(function (success) {
 
@@ -242,7 +353,7 @@ iris.modules.irisSolr.globals.generateSearch = function (req, res) {
         var markup = "";
         var done = function () {
 
-          iris.modules.frontend.globals.parseTemplateFile(['custom-search'], ['html'], {results: markup}, req.authPass, req)
+          iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: markup}, req.authPass, req)
 
             .then(function (output) {
 
@@ -484,6 +595,226 @@ iris.modules.irisSolr.registerHook("hook_frontend_handlebars_extend", 1, functio
   Swag.registerHelpers(Handlebars);
 
   thisHook.pass(Handlebars);
+
+});
+
+/** 
+ * TODO : This one is just copied from schemaui and is not working yet :(
+*/
+iris.modules.irisSolr.registerHook("hook_form_render__indexFieldListing", 0, function (thisHook, data) {
+
+
+  if (thisHook.context.params[1]) {
+
+    var entityType = thisHook.context.params[1];
+
+    if (!iris.dbSchemaConfig[entityType]) {
+
+      iris.message(thisHook.authPass.userid, "No such entity type", "error");
+
+      thisHook.fail(data);
+
+      return false;
+
+    }
+
+
+    var entityTypeSchema = iris.dbSchemaConfig[entityType];
+    // Parent is required to know which fields to list.
+    var parent = thisHook.context.params[2];
+
+    if (parent) {
+
+      var recurseFields = function (object, elementParent) {
+
+          for (element in object) {
+
+            if (element == parent) {
+
+              parentSchema = object[element];
+              fields = object[element].subfields;
+
+              return;
+
+            } else if (typeof object[element].fieldType != 'undefined' && object[element].fieldType == 'Fieldset') {
+
+              recurseFields(object[element].subfields, element);
+
+            }
+
+          };
+        }
+        // Do recursion to find the desired fields to list as they may be nested.
+      recurseFields(entityTypeSchema.fields, parent);
+
+    } else {
+      parentSchema = entityTypeSchema.fields;
+      fields = entityTypeSchema.fields;
+    }
+
+    var rows = [];
+    var weightsList = [];
+
+    // Loop over each field to add to the table.
+    Object.keys(fields).forEach(function (fieldName) {
+
+      var row = {};
+
+      if (!parentSchema.subfields) {
+        var field = JSON.parse(JSON.stringify(parentSchema[fieldName]));
+      } else {
+        var field = JSON.parse(JSON.stringify(parentSchema.subfields[fieldName]));
+      }
+
+
+      row['fieldLabel'] = field.label;
+      row['fieldId'] = fieldName;
+      row['fieldType'] = field.fieldType;
+      row['fieldWeight'] = field.weight;
+      row['fieldEdit'] = '<a href="/admin/config/solr/' + entityType + '/' + fieldName + '" >Edit</a>';
+      row['fieldDelete'] = '<a href="/admin/config/solr/' + entityType + '/' + fieldName + '/delete" >Delete</a>';
+      rows.push(row);
+
+      // Currently a hacky way to alter the weights of fields, this creates a fidden field that gets updated
+      // when the user re-orders the table.
+      weightsList.push({
+        "machineName": 'weight_' + fieldName,
+        "weight": field.weight
+      });
+    });
+
+    // Order the rows by weight.
+    rows.sort(function (a, b) {
+
+      if (a.fieldWeight > b.fieldWeight) {
+
+        return 1;
+
+      } else if (a.fieldWeight < b.fieldWeight) {
+
+        return -1;
+
+      } else {
+
+        return 0;
+
+      }
+
+    });
+
+    // Generate table markup. This should be replaced with a handlebars wrapper that generates a table from JSON.
+    var tableHtml = '<table>' +
+      '<thead>' +
+      '<th></th>' +
+      '<th>Label</th>' +
+      '<th>Machine name</th>' +
+      '<th>Type</th>' +
+      '<th>Edit</th>' +
+      '<th>Delete</th>' +
+      '</thead>' +
+      '<tbody class="ui-sortable">';
+    var counter = 0;
+    rows.forEach(function (tableRow) {
+
+      tableHtml += '<tr>';
+      tableHtml += '<td><span class="glyphicon glyphicon-resize-vertical"></span></td>';
+      for (tableCell in tableRow) {
+        tableHtml += "<td class=\"" + tableCell + "\">" + tableRow[tableCell] + "</td>";
+      };
+
+      tableHtml += '</tr>';
+
+    });
+    tableHtml += '</tbody></table>';
+
+
+
+    var weightFields = {
+      "type": "array",
+      "title": "weights",
+      "items": {
+        "type": "object",
+        "properties": {
+          "weight": {
+            "type": "number",
+          },
+          "machineName": {
+            "type": "hidden"
+          }
+        }
+      }
+    };
+
+    data.schema = {
+      "table": {
+        "type": "markup",
+        "markup": tableHtml
+      },
+      weightFields,
+      "label": {
+        "type": "text",
+        "title": "Field label"
+      },
+      "machineName": {
+        "type": "text",
+        "title": "Database name",
+      },
+      "fieldType": {
+        "type": "text",
+        "title": "Field type",
+        "enum": Object.keys(iris.fieldTypes).concat(["Fieldset"])
+      },
+      "entityType": {
+        "type": "hidden",
+      },
+      parentItem: {
+        "type": "hidden",
+      }
+    };
+
+    data.form = [
+      "table",
+      "weightFields",
+      "entityType",
+      "parentItem",
+      {
+        "type": "fieldset",
+        "title": "Add new field",
+        "expandable": true,
+        "items": [
+          {
+            "key": "label",
+            "onKeyUp": function (evt, node) {
+              var label = $("input[name=label]").val();
+              label = label.replace(/[^a-zA-Z]+/g, "_").toLowerCase();
+              $('#machineNameBuilder').html(label);
+              $("input[name=machineName]").val(label);
+            }
+          },
+          {
+            "key": "machineName",
+            "onInsert": function (evt, node) {
+              $("input[name=machineName]").before("<div id=\"machineNameBuilder\"></div>");
+            }
+          },
+          "fieldType"
+        ]
+      },
+      {
+        "type": "submit",
+        "title": "Save"
+      }
+    ];
+
+    data.value.parentItem = parent;
+    data.value.weightFields = weightsList;
+    data.value.entityType = entityType;
+
+    thisHook.pass(data);
+  } else {
+    thisHook.fail(data);
+    iris.log("error", "No entityType field passed to hook_form_render__schemaFieldListing");
+  }
 
 });
 
