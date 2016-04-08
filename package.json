@@ -1,6 +1,6 @@
 {
   "name": "irisjs-apachesolr",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Apache solr search integration for the IrisJS framework",
   "main": "irisjs.org",
   "scripts": {
