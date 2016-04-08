@@ -1,25 +1,26 @@
 {
-  "name": "iris-solr",
+  "name": "irisjs-apachesolr",
   "version": "1.0.0",
-  "description": "Iris Module for solr",
-  "main": "irissolr.js",
+  "description": "Apache solr search integration for the IrisJS framework",
+  "main": "irisjs.org",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/facascante/iris-solr.git"
+    "url": "git+https://github.com/CityWebConsultants/iris-solr"
   },
   "keywords": [
     "solr",
-    "iris"
+    "apachesolr",
+    "irisjs"
   ],
-  "author": "Chito Cascante",
+  "author": "City Web Consultants",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/facascante/iris-solr/issues"
+    "url": "https://github.com/CityWebConsultants/iris-solr/issues"
   },
-  "homepage": "https://github.com/facascante/iris-solr#readme",
+  "homepage": "https://github.com/CityWebConsultants/iris-solr#readme",
   "dependencies": {
     "query-string": "^3.0.1",
     "solr-client": "^0.6.0",

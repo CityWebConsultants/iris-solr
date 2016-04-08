@@ -1,42 +1,34 @@
-# iris-solr
+# IrisJS.org - Apache solr search integration for the IrisJS framework
 
 ## How to install
 ```
 
-1. Install solair.
-2. create a core in solair
-3. Copy the content of this repo to home/modules/irisSolr folder
-4. enable the Solr Search Module
+1. Install Apache Solr.
+  See https://cwiki.apache.org/confluence/display/solr/Installing+Solr and https://cwiki.apache.org/confluence/display/solr/Running+Solr
+2. A core will be required in solr, for the purpose of these instructions we will call it 'iris'
+3. Run 'npm install irisjs-apachesolr' in your project.
+4. In your Iris site enable to the solr module at /admin/modules
 ```
 
-## More temporary steps
-
+## Configure solr
 ```
-1. in handlebars_helpers.js, add this code for compare helpers to work
+At /admin/config/search/solr enter the connection details for you solr instance. Eg;
+host: 127.0.0.1
+port: 8983
+core: iris
+path: /solr
 
-Handlebars.registerHelper('compare', function (lvalue, operator, rvalue, options) {
-    if (arguments.length < 4) {
-      throw new Error("Handlerbars Helper 'compare' needs 3 parameters");
-    }
-
-    var result = eval("'" + lvalue + "' " + operator + " '" + rvalue + "'");
-    if (result) {
-      return options.fn(this);
-    } else {
-      return options.inverse(this);
-    }
-  });
-  
-  
-2. npm install query-string
-3. npm install solr-client
+Go to /admin/config/search/solr/entities to choose which entities and fields should be indexed.
+```
 
 ```
 ## How to use
 
 ```
 1. Add or Update an entity
-2. navigate to /search
-3. search for an entity that you have added e.g. filter = username:foo or filter = foo
+2. Navigate to /search
+3. Search for an entity that you have added eg:
+   For keyword search ?filter=foo
+   or field specific searchs ?filter=fieldname:foo
 4. enjoy and help improve the search POC page
 ```
