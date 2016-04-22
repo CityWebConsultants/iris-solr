@@ -432,95 +432,112 @@ iris.modules.irisjsApachesolr.globals.generateSearch = function (req, res) {
 
   var query = iris.modules.irisjsApachesolr.globals.generateQuery(req.query);
 
-  if (query.parameters[0] = 'q=') {
-    query.parameters[0] = 'q=*:*';
-  }
+  if (query) {
+    if (query.parameters[0] = 'q=') {
+      query.parameters[0] = 'q=*:*';
+    }
 
-  iris.modules.irisjsApachesolr.globals.executeQuery("search", query, function (result) {
+    iris.modules.irisjsApachesolr.globals.executeQuery("search", query, function (result) {
 
-    if (result) {
+      if (result) {
 
-      var markup = "";
-      var done = function () {
+        var markup = "";
+        var done = function () {
 
-        iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: markup}, req.authPass, req)
+          iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: markup}, req.authPass, req)
 
-          .then(function (output) {
+            .then(function (output) {
 
-            res.send(output);
+              res.send(output);
 
-          }, function (fail) {
+            }, function (fail) {
 
-            iris.modules.frontend.globals.displayErrorPage(500, req, res);
-            iris.log("error", fail);
+              iris.modules.frontend.globals.displayErrorPage(500, req, res);
+              iris.log("error", fail);
 
-          });
-
-      }
-
-      var count = result.response.docs.length,
-        counter = 0;
-
-      var next = function () {
-
-        counter += 1;
-
-        if (counter >= count) {
-
-          done();
+            });
 
         }
 
-      }
+        var count = result.response.docs.length,
+          counter = 0;
 
-      result.response.docs.forEach(function (result) {
+        var next = function () {
 
-        var entityQuery = {
-          entities: [result.entityType[0]],
-          queries: [{
-            field: 'eid',
-            operator: 'IS',
-            value: result.eid[0]
-          }]
-        };
-        iris.invokeHook("hook_entity_fetch", req.authPass, null, entityQuery)
-          .then(function (entity) {
+          counter += 1;
 
-            if (entity[0]) {
-              iris.modules.frontend.globals.parseTemplateFile(['solrresult', result.entityType[0]], null, entity[0], req.authPass, req)
+          if (counter >= count) {
 
-                .then(function (output) {
-                  markup += output;
-                  next();
+            done();
 
-                }, function (fail) {
-                  iris.modules.frontend.globals.displayErrorPage(500, req, res);
-                  iris.log("error", fail);
+          }
 
-                });
-            }
-            else {
+        }
+
+        result.response.docs.forEach(function (result) {
+
+          var entityQuery = {
+            entities: [result.entityType[0]],
+            queries: [{
+              field: 'eid',
+              operator: 'IS',
+              value: result.eid[0]
+            }]
+          };
+          iris.invokeHook("hook_entity_fetch", req.authPass, null, entityQuery)
+            .then(function (entity) {
+
+              if (entity && entity[0]) {
+                iris.modules.frontend.globals.parseTemplateFile(['solrresult', result.entityType[0]], null, entity[0], req.authPass, req)
+
+                  .then(function (output) {
+                    markup += output;
+                    next();
+
+                  }, function (fail) {
+                    iris.modules.frontend.globals.displayErrorPage(500, req, res);
+                    iris.log("error", fail);
+
+                  });
+              }
+              else {
+                next();
+              }
+
+            }, function (fail) {
               next();
-            }
+              iris.log("error", fail);
 
-          }, function (fail) {
-            next();
-            iris.log("error", fail);
+            });
 
-          });
+        });
+        if (result.response.docs.length == 0) {
+          next();
+        }
+
+      }
+      else {
+
+        return false;
+      }
+    });
+  }
+  else {
+
+    iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: '<div class="alert alert-danger">' + req.authPass.t("Cannot connect to Apachesolr") + '</div>'}, req.authPass, req)
+
+      .then(function (output) {
+
+        res.send(output);
+
+      }, function (fail) {
+
+        iris.modules.frontend.globals.displayErrorPage(500, req, res);
+        iris.log("error", fail);
 
       });
-      if (result.response.docs.length == 0) {
-        next();
-      }
 
-    }
-    else {
-
-      return false;
-    }
-  });
-
+  }
 };
 
 /**
@@ -572,7 +589,7 @@ iris.modules.irisjsApachesolr.globals.getSolrConnection = function (config) {
   }
   else {
 
-    iris.log("error", "Error reading configuration file. irisSolr : adminSolr" + fail);
+    iris.log("error", "Error reading configuration file, you may need to setup solr connection settings.");
 
     iris.message("Error reading configuration file. irisSolr : adminSolr", "error");
 
