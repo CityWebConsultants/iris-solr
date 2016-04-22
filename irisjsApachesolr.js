@@ -132,7 +132,6 @@ iris.modules.irisjsApachesolr.globals.generateEntityForm = function (thisHook, d
     // Add defaults.
     schema.fields['entityType'] = {'fieldType': 'Textfield'}
     schema.fields['entityAuthor'] = {'fieldType': 'Number'}
-    schema.fields['eid'] = {'fieldType': 'Number'}
 
     getFields(schema.fields);
 
