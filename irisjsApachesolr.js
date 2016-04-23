@@ -44,7 +44,29 @@ var routes = {
 };
 
 iris.route.get('/search', routes.query, function (req, res) {
-  iris.modules.irisjsApachesolr.globals.generateSearch(req, res);
+
+  var options = {
+    req: req,
+    res: res,
+    query: req.query,
+  };
+
+  iris.modules.irisjsApachesolr.globals.generateSearch(options, function(markup) {
+
+    iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: markup}, req.authPass, req)
+
+      .then(function (output) {
+
+        res.send(output);
+
+      }, function (fail) {
+
+        iris.modules.frontend.globals.displayErrorPage(500, req, res);
+        iris.log("error", fail);
+
+      });
+
+  });
 });
 
 /**
@@ -427,12 +449,12 @@ iris.modules.irisjsApachesolr.globals.executeQuery = function (action, content, 
 /**
  * Helper function to generate search result based on filter.
  */
-iris.modules.irisjsApachesolr.globals.generateSearch = function (req, res) {
+iris.modules.irisjsApachesolr.globals.generateSearch = function (options, callback) {
 
-  var query = iris.modules.irisjsApachesolr.globals.generateQuery(req.query);
+  var query = iris.modules.irisjsApachesolr.globals.generateQuery(options.query);
 
   if (query) {
-    if (query.parameters[0] = 'q=') {
+    if (query.parameters[0] == 'q=') {
       query.parameters[0] = 'q=*:*';
     }
 
@@ -443,18 +465,7 @@ iris.modules.irisjsApachesolr.globals.generateSearch = function (req, res) {
         var markup = "";
         var done = function () {
 
-          iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: markup}, req.authPass, req)
-
-            .then(function (output) {
-
-              res.send(output);
-
-            }, function (fail) {
-
-              iris.modules.frontend.globals.displayErrorPage(500, req, res);
-              iris.log("error", fail);
-
-            });
+          callback(markup);
 
         }
 
@@ -483,18 +494,18 @@ iris.modules.irisjsApachesolr.globals.generateSearch = function (req, res) {
               value: result.eid[0]
             }]
           };
-          iris.invokeHook("hook_entity_fetch", req.authPass, null, entityQuery)
+          iris.invokeHook("hook_entity_fetch", options.req.authPass, null, entityQuery)
             .then(function (entity) {
 
               if (entity && entity[0]) {
-                iris.modules.frontend.globals.parseTemplateFile(['solrresult', result.entityType[0]], null, entity[0], req.authPass, req)
+                iris.modules.frontend.globals.parseTemplateFile(['solrresult', result.entityType[0]], null, entity[0], options.req.authPass, options.req)
 
                   .then(function (output) {
                     markup += output;
                     next();
 
                   }, function (fail) {
-                    iris.modules.frontend.globals.displayErrorPage(500, req, res);
+                    iris.modules.frontend.globals.displayErrorPage(500, options.req, res);
                     iris.log("error", fail);
 
                   });
@@ -523,7 +534,7 @@ iris.modules.irisjsApachesolr.globals.generateSearch = function (req, res) {
   }
   else {
 
-    iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: '<div class="alert alert-danger">' + req.authPass.t("Cannot connect to Apachesolr") + '</div>'}, req.authPass, req)
+    iris.modules.frontend.globals.parseTemplateFile(['solrsearch'], ['html'], {results: '<div class="alert alert-danger">' + req.authPass.t("Cannot connect to Apachesolr") + '</div>'}, options.req.authPass, options.req)
 
       .then(function (output) {
 
@@ -531,7 +542,7 @@ iris.modules.irisjsApachesolr.globals.generateSearch = function (req, res) {
 
       }, function (fail) {
 
-        iris.modules.frontend.globals.displayErrorPage(500, req, res);
+        iris.modules.frontend.globals.displayErrorPage(500, options.req, res);
         iris.log("error", fail);
 
       });
