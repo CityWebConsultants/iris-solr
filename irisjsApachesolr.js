@@ -112,15 +112,16 @@ iris.route.get('/admin/config/search/solr', routes.connection_config, function (
  * TODO : it display just a copy paste content list of entities
  */
 iris.route.get("/admin/config/search/solr/entities", routes.index_config, function (req, res) {
-
+ 
+ console.log("chito");
   iris.modules.frontend.globals.parseTemplateFile(["solrentities"], ['admin_wrapper'], {}, req.authPass, req).then(function (success) {
-
+console.log("chito pass");
     res.send(success)
 
   }, function (fail) {
 
     iris.modules.frontend.globals.displayErrorPage(500, req, res);
-
+console.log("chito fail");
     iris.log("error", fail);
 
   });
@@ -129,7 +130,7 @@ iris.route.get("/admin/config/search/solr/entities", routes.index_config, functi
 
 iris.modules.irisjsApachesolr.globals.generateEntityForm = function (thisHook, data, config) {
 
-  var entityTypes = Object.keys(iris.dbCollections);
+  var entityTypes = Object.keys(iris.entityTypes);
   var fields = [];
 
   var getFields = function (entity) {
@@ -149,7 +150,7 @@ iris.modules.irisjsApachesolr.globals.generateEntityForm = function (thisHook, d
   entityTypes.forEach(function (type) {
 
     fields = {};
-    var schema = JSON.parse(JSON.stringify(iris.dbSchemaConfig[type]));
+    var schema = JSON.parse(JSON.stringify(iris.entityTypes[type]));
 
     // Add defaults.
     schema.fields['entityType'] = {'fieldType': 'Textfield'}
@@ -233,14 +234,14 @@ iris.modules.irisjsApachesolr.globals.generateEntityForm = function (thisHook, d
  */
 
 iris.modules.irisjsApachesolr.registerHook("hook_form_render__solrEntities", 0, function (thisHook, data) {
-
+  console.log("solrEntities","chitoss");
   iris.readConfig('irisSolr', 'solrEntities').then(function (config) {
-
+console.log("solrEntities","chitossdsds");
     iris.modules.irisjsApachesolr.globals.generateEntityForm(thisHook, data, config);
 
   }, function (fail) {
-
-    iris.modules.irisjsApachesolr.globals.generateEntityForm(thisHook, data, false);
+console.log("solrEntities","chitsdsdoss",fail);
+    iris.modules.irisjsApachesolr.globals.generateEntityForm(thisHook, data, {});
 
   });
 
