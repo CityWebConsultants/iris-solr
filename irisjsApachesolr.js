@@ -239,7 +239,7 @@ iris.modules.irisjsApachesolr.registerHook("hook_form_render__solrEntities", 0, 
 
   }, function (fail) {
 
-    iris.modules.irisjsApachesolr.globals.generateEntityForm(thisHook, data, {});
+    iris.modules.irisjsApachesolr.globals.generateEntityForm(thisHook, data, false);
 
   });
 
