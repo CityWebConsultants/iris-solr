@@ -113,15 +113,14 @@ iris.route.get('/admin/config/search/solr', routes.connection_config, function (
  */
 iris.route.get("/admin/config/search/solr/entities", routes.index_config, function (req, res) {
  
- console.log("chito");
   iris.modules.frontend.globals.parseTemplateFile(["solrentities"], ['admin_wrapper'], {}, req.authPass, req).then(function (success) {
-console.log("chito pass");
+
     res.send(success)
 
   }, function (fail) {
 
     iris.modules.frontend.globals.displayErrorPage(500, req, res);
-console.log("chito fail");
+
     iris.log("error", fail);
 
   });
@@ -142,7 +141,6 @@ iris.modules.irisjsApachesolr.globals.generateEntityForm = function (thisHook, d
       }
       else {
         getFields(entity[field].subfields);
-      }
     });
 
   }
@@ -234,13 +232,13 @@ iris.modules.irisjsApachesolr.globals.generateEntityForm = function (thisHook, d
  */
 
 iris.modules.irisjsApachesolr.registerHook("hook_form_render__solrEntities", 0, function (thisHook, data) {
-  console.log("solrEntities","chitoss");
+  
   iris.readConfig('irisSolr', 'solrEntities').then(function (config) {
-console.log("solrEntities","chitossdsds");
+
     iris.modules.irisjsApachesolr.globals.generateEntityForm(thisHook, data, config);
 
   }, function (fail) {
-console.log("solrEntities","chitsdsdoss",fail);
+
     iris.modules.irisjsApachesolr.globals.generateEntityForm(thisHook, data, {});
 
   });
